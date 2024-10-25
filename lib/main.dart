@@ -10,9 +10,12 @@ void main() {
 
 class DirectionalImageGame extends FlameGame with PanDetector {
   late Player player;
+  late Background background;
 
   @override
   Future<void> onLoad() async {
+    background = Background(); // 배경 인스턴스 생성
+    add(background); // 배경 추가
     player = Player();
     add(player);
   }
@@ -33,7 +36,6 @@ class DirectionalImageGame extends FlameGame with PanDetector {
   }
 }
 
-
 class Player extends SpriteComponent with HasGameReference<DirectionalImageGame> {
   late Sprite image1;
   late Sprite image2;
@@ -44,7 +46,6 @@ class Player extends SpriteComponent with HasGameReference<DirectionalImageGame>
   Vector2 totalDelta = Vector2.zero();
   int dragCount = 0;
 
-  // HP 추가
   int hp = 5;
 
   Player() : super(size: Vector2(100, 150), anchor: Anchor.center);
@@ -53,13 +54,17 @@ class Player extends SpriteComponent with HasGameReference<DirectionalImageGame>
   Future<void> onLoad() async {
     await super.onLoad();
     await loadSprites();
-    position = (game.size / 2) - (size / 2);
+    // 플레이어의 크기를 게임 화면 높이의 3/2로 설정
+    size = Vector2(size.x * (game.size.y/size.y) * (1/3), game.size.y * (1 / 3));
+
+    // 화면의 가운데 맨 아래로 위치 설정
+    position = Vector2((game.size.x / 2) - (size.x / 2), (game.size.y/2) - (size.y/2));
     sprite = image1;
   }
 
   Future<void> loadSprites() async {
     try {
-      image1 = await game.loadSprite('bullet.png');
+      image1 = await game.loadSprite('character.png');
       image2 = await game.loadSprite('enemy.png');
       image3 = await game.loadSprite('player_sprite.png');
       image4 = await game.loadSprite('star_0.png');
@@ -82,25 +87,15 @@ class Player extends SpriteComponent with HasGameReference<DirectionalImageGame>
   void endDrag() {
     if (dragCount > 0) {
       Vector2 averageDelta = totalDelta / dragCount.toDouble();
-      double slope = averageDelta.y / averageDelta.x;
 
       if (averageDelta.x.abs() > averageDelta.y.abs()) {
-        if (averageDelta.x < 0) {
-          sprite = image3; // 왼쪽
-        } else {
-          sprite = image4; // 오른쪽
-        }
+        sprite = averageDelta.x < 0 ? image3 : image4; // 왼쪽 또는 오른쪽
       } else {
-        if (averageDelta.y < 0) {
-          sprite = image1; // 위
-        } else {
-          sprite = image2; // 아래
-        }
+        sprite = averageDelta.y < 0 ? image1 : image2; // 위 또는 아래
       }
     }
   }
 
-  // HP를 감소시키는 메서드
   void takeDamage() {
     if (hp > 0) {
       hp--;
@@ -110,7 +105,6 @@ class Player extends SpriteComponent with HasGameReference<DirectionalImageGame>
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    // HP 표시
     final textPainter = TextPainter(
       text: TextSpan(
         text: 'HP: $hp',
@@ -119,6 +113,17 @@ class Player extends SpriteComponent with HasGameReference<DirectionalImageGame>
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(10, game.size.y - 30)); // 왼쪽 아래에 위치
+    textPainter.paint(canvas, Offset(10, game.size.y - 30));
+  }
+}
+
+class Background extends SpriteComponent with HasGameReference<DirectionalImageGame> {
+  Background() : super(size: Vector2.zero());
+
+  @override
+  Future<void> onLoad() async {
+    sprite = await game.loadSprite('background.png');
+    size = game.size; // 게임 크기에 맞춤
+    anchor = Anchor.topLeft; // 기본 위치 설정
   }
 }
